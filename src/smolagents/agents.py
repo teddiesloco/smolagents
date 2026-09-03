@@ -597,7 +597,13 @@ You have been provided with these additional arguments, that you can access dire
             except AgentError as e:
                 # Other AgentError types are caused by the Model, so we should log them and iterate.
                 action_step.error = e
-            finally:
+            except GeneratorExit:
+                # When the generator is closed early (e.g. gen.close(), loop break),
+                # finalize the step and update memory without yielding inside unwinding.
+                self._finalize_step(action_step)
+                self.memory.steps.append(action_step)
+                raise
+            else:
                 self._finalize_step(action_step)
                 self.memory.steps.append(action_step)
                 yield action_step
